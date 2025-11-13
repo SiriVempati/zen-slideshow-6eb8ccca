@@ -7,6 +7,7 @@ import { ArrowLeft, Download, FileJson, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import SlideCard from "@/components/SlideCard";
 import SlideEditor from "@/components/SlideEditor";
+import pptxgen from "pptxgenjs";
 
 interface Slide {
   index: number;
@@ -100,6 +101,63 @@ const Preview = () => {
     });
   };
 
+  const handleDownloadPPTX = () => {
+    if (!data) return;
+    
+    const pptx = new pptxgen();
+    
+    // Set presentation properties
+    pptx.author = data.metadata.presenter || 'AI PPT Generator';
+    pptx.title = data.metadata.topic;
+    pptx.subject = data.metadata.topic;
+    
+    // Create slides
+    data.slides.forEach((slideData) => {
+      const slide = pptx.addSlide();
+      
+      // Add background color based on layout
+      if (slideData.layout_hint === 'title-slide') {
+        slide.background = { color: data.palette.primary };
+      }
+      
+      // Add title
+      slide.addText(slideData.title, {
+        x: 0.5,
+        y: 0.5,
+        w: 9,
+        h: 1,
+        fontSize: slideData.layout_hint === 'title-slide' ? 44 : 32,
+        bold: true,
+        color: slideData.layout_hint === 'title-slide' ? 'FFFFFF' : data.palette.primary.replace('#', ''),
+      });
+      
+      // Add bullet points
+      if (slideData.bullets && slideData.bullets.length > 0) {
+        slide.addText(slideData.bullets.map(b => ({ text: b, options: { bullet: true } })), {
+          x: 0.5,
+          y: 2,
+          w: 9,
+          h: 4,
+          fontSize: 18,
+          color: '333333',
+        });
+      }
+      
+      // Add speaker notes
+      if (slideData.speaker_notes) {
+        slide.addNotes(slideData.speaker_notes);
+      }
+    });
+    
+    // Save the presentation
+    pptx.writeFile({ fileName: `${data.metadata.topic.replace(/\s+/g, '-').toLowerCase()}.pptx` });
+    
+    toast({
+      title: "Download started",
+      description: "Your PowerPoint presentation is being generated",
+    });
+  };
+
   if (!data) {
     return null;
   }
@@ -131,7 +189,7 @@ const Preview = () => {
                 <FileJson className="h-4 w-4" />
                 Export JSON
               </Button>
-              <Button className="gap-2" disabled>
+              <Button className="gap-2" onClick={handleDownloadPPTX}>
                 <Download className="h-4 w-4" />
                 Download PPTX
               </Button>
