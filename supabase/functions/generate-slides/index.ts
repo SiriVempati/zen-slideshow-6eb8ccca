@@ -126,10 +126,21 @@ Guidelines:
       throw new Error('No content generated from AI');
     }
 
-    // Parse the JSON response
+    // Parse the JSON response (handle markdown code blocks)
     let presentationData;
     try {
-      presentationData = JSON.parse(generatedContent);
+      let jsonContent = generatedContent.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```')) {
+        const firstNewline = jsonContent.indexOf('\n');
+        const lastBackticks = jsonContent.lastIndexOf('```');
+        if (firstNewline !== -1 && lastBackticks !== -1) {
+          jsonContent = jsonContent.substring(firstNewline + 1, lastBackticks).trim();
+        }
+      }
+      
+      presentationData = JSON.parse(jsonContent);
     } catch (parseError) {
       console.error('Failed to parse AI response:', generatedContent);
       throw new Error('Invalid JSON format from AI. Please try again.');
